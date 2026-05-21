@@ -1,32 +1,26 @@
 const express = require('express');
-const { iamClient } = require('../aws-client');
-const { ListUsersCommand, ListRolesCommand } = require('@aws-sdk/client-iam');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
-
 router.use(authMiddleware);
 
-router.get('/users', async (req, res) => {
-  try {
-    const command = new ListUsersCommand({ MaxItems: 100 });
-    const response = await iamClient.send(command);
-    
-    res.json({ users: response.Users || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message, code: error.name });
-  }
+const mockUsers = [
+  { UserName: 'dev-user-1', UserId: 'UID0001', CreateDate: new Date('2023-01-01T00:00:00Z') },
+  { UserName: 'dev-user-2', UserId: 'UID0002', CreateDate: new Date('2023-02-15T00:00:00Z') },
+  { UserName: 'admin-service', UserId: 'UID0003', CreateDate: new Date('2023-05-10T00:00:00Z') }
+];
+
+const mockRoles = [
+  { RoleName: 'EC2AccessRole', RoleId: 'RID0001', CreateDate: new Date('2023-01-01T00:00:00Z') },
+  { RoleName: 'LambdaExecutionRole', RoleId: 'RID0002', CreateDate: new Date('2023-04-20T00:00:00Z') }
+];
+
+router.get('/users', (req, res) => {
+  res.json({ users: mockUsers });
 });
 
-router.get('/roles', async (req, res) => {
-  try {
-    const command = new ListRolesCommand({ MaxItems: 100 });
-    const response = await iamClient.send(command);
-    
-    res.json({ roles: response.Roles || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message, code: error.name });
-  }
+router.get('/roles', (req, res) => {
+  res.json({ roles: mockRoles });
 });
 
 module.exports = router;

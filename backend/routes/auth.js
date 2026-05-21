@@ -13,17 +13,20 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if first user
-    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    const countRes = await db.query('SELECT COUNT(*) as count FROM users');
+    const userCount = parseInt(countRes.rows[0].count, 10);
     const role = userCount === 0 ? 'admin' : 'user';
 
     const hash = await bcrypt.hash(password, 10);
     
     try {
-      const stmt = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)');
-      const info = stmt.run(username, hash, role);
-      res.json({ id: info.lastInsertRowid, username, role });
+      const insertRes = await db.query(
+        'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id',
+        [username, hash, role]
+      );
+      res.json({ id: insertRes.rows[0].id, username, role });
     } catch (err) {
-      if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (err.code === '23505') { // Postgres unique violation
         return res.status(400).json({ error: 'Username already exists' });
       }
       throw err;
@@ -37,7 +40,8 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    const userRes = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = userRes.rows[0];
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

@@ -1,17 +1,9 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 
-const dbPath = process.env.DATABASE_URL || path.join(__dirname, 'data', 'database.sqlite');
-const db = new Database(dbPath, { verbose: console.log });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-// Initialize database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT DEFAULT 'user'
-  );
-`);
-
-module.exports = db;
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+};
